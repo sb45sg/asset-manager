@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Wealth Dashboard</title>
+
+<!-- ─── REPLACE THESE TWO VALUES ─────────────────────────── -->
+<script>
+  window.SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co'
+  window.SUPABASE_ANON_KEY = 'YOUR_ANON_KEY'
+</script>
+<!-- ──────────────────────────────────────────────────────── -->
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f7f4ef;--surface:#ffffff;--border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.18);
+  --text:#1a1a18;--muted:#6b6b62;--accent:#2d5a3d;--accent2:#c8a96e;
+  --danger:#c0392b;--blue:#1e3a5f;--teal:#1d7d6b;--sand:#e8dcc8;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#141410;--surface:#252520;--border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.16);
+    --text:#f0ede6;--muted:#9a9a8e;--accent:#5a9e72;--sand:#2a2820;
+  }
+}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',system-ui,sans-serif;font-size:14px;line-height:1.6}
+.app{max-width:980px;margin:0 auto;padding:24px 20px 60px}
+
+/* ── HEADER ── */
+.header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:26px;padding-bottom:18px;border-bottom:1px solid var(--border2);flex-wrap:wrap;gap:12px}
+.h-title{font-family:'DM Serif Display',serif;font-size:26px;font-weight:400;letter-spacing:-0.4px}
+.h-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.h-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.fx-badge{display:flex;align-items:center;gap:6px;background:var(--surface);border:0.5px solid var(--border2);border-radius:20px;padding:4px 10px;font-size:12px;color:var(--muted)}
+.fx-dot{width:6px;height:6px;border-radius:50%;background:#4caf50}
+.fx-dot.stale{background:var(--accent2)}
+.curr-tabs{display:flex;gap:3px;background:var(--surface);border:0.5px solid var(--border2);border-radius:8px;padding:3px}
+.curr-btn{padding:4px 11px;border-radius:5px;border:none;cursor:pointer;font-size:12px;font-weight:500;background:transparent;color:var(--muted);transition:all .15s;font-family:inherit}
+.curr-btn.active{background:var(--accent);color:#fff}
+
+/* ── AUTH ── */
+.auth-wrap{max-width:400px;margin:80px auto;padding:36px;background:var(--surface);border-radius:14px;border:0.5px solid var(--border2)}
+.auth-title{font-family:'DM Serif Display',serif;font-size:22px;font-weight:400;margin-bottom:6px}
+.auth-sub{font-size:13px;color:var(--muted);margin-bottom:24px}
+.form-row{margin-bottom:14px}
+.form-row label{display:block;font-size:11px;font-weight:500;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+.form-row input,.form-row select,.form-row textarea{width:100%;padding:8px 10px;border-radius:7px;border:0.5px solid var(--border2);background:var(--bg);color:var(--text);font-size:13px;font-family:inherit}
+.form-row input:focus,.form-row select:focus{outline:none;border-color:var(--accent)}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* ── BUTTONS ── */
+.btn{padding:8px 16px;border-radius:8px;border:0.5px solid var(--border2);cursor:pointer;font-size:13px;font-weight:500;font-family:inherit;background:transparent;color:var(--text);transition:all .15s}
+.btn:hover{background:var(--bg)}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.primary:hover{opacity:.9}
+.btn.danger{color:var(--danger);border-color:rgba(192,57,43,.3)}
+.btn.danger:hover{background:rgba(192,57,43,.07)}
+.btn.sm{padding:4px 10px;font-size:11px}
+.btn-row{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap}
+
+/* ── METRIC CARDS ── */
+.metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:20px}
+.mc{background:var(--bg);border-radius:8px;padding:13px 15px}
+.mc-label{font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+.mc-val{font-family:'DM Serif Display',serif;font-size:21px;letter-spacing:-.3px}
+.mc-val.green{color:var(--accent)}.mc-val.red{color:var(--danger)}.mc-val.amber{color:var(--accent2)}.mc-val.blue{color:var(--blue)}
+.mc-sub{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* ── PANELS ── */
+.panel{background:var(--surface);border:0.5px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:16px}
+.panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+.section-title{font-family:'DM Serif Display',serif;font-size:17px;font-weight:400}
+
+/* ── GOAL BAR ── */
+.goal-pct{font-family:'DM Serif Display',serif;font-size:34px;color:var(--accent);letter-spacing:-1px}
+.goal-track{background:var(--bg);border-radius:99px;height:10px;overflow:hidden;margin:10px 0 7px}
+.goal-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--teal),var(--accent2));transition:width .8s cubic-bezier(.16,1,.3,1)}
+.milestone-row{display:flex;gap:8px;flex-wrap:wrap}
+.ms-chip{padding:3px 10px;border-radius:99px;font-size:11px;font-weight:500;background:#e8f0fc;color:#1e3a5f;border:0.5px solid rgba(30,58,95,.12)}
+.ms-chip.reached{background:#e0f0e8;color:#1a4a2e}
+@media(prefers-color-scheme:dark){
+  .ms-chip{background:#1e2a45;color:#7eb3ff}
+  .ms-chip.reached{background:#1a3a28;color:#7ec89a}
+}
+
+/* ── TABS ── */
+.nav-tabs{display:flex;gap:0;margin-bottom:18px;border-bottom:1px solid var(--border2)}
+.tab-btn{padding:8px 16px;border:none;background:transparent;cursor:pointer;font-size:13px;font-family:inherit;color:var(--muted);font-weight:400;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:500}
+
+/* ── TABLES ── */
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font-weight:500;font-size:11px;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);padding:6px 8px;border-bottom:0.5px solid var(--border2)}
+.tbl td{padding:8px 8px;border-bottom:0.5px solid var(--border)}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:var(--bg)}
+.tbl-foot td{border-top:0.5px solid var(--border2);font-weight:500}
+.owner-pill{display:inline-block;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:500}
+.pill-A{background:#dce8ff;color:#1e3a5f}.pill-B{background:#fce8d8;color:#7a3010}.pill-both{background:#e0f0e8;color:#1a4a2e}
+@media(prefers-color-scheme:dark){
+  .pill-A{background:#1e3060;color:#7eb3ff}.pill-B{background:#5a2010;color:#ffb080}.pill-both{background:#1a3a28;color:#7ec89a}
+}
+.geo-badge{padding:1px 7px;border-radius:99px;color:#fff;font-size:10px;font-weight:500}
+.inst-dot{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px;vertical-align:middle}
+
+/* ── CHARTS ── */
+.chart-wrap{position:relative;width:100%;height:260px}
+.chart-wrap-sm{position:relative;width:100%;height:200px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+@media(max-width:600px){.two-col{grid-template-columns:1fr}}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:10px;font-size:12px;color:var(--muted)}
+.leg-item{display:flex;align-items:center;gap:5px}
+.leg-sq{width:10px;height:10px;border-radius:2px}
+
+/* ── MORTGAGE CARD ── */
+.mort-card{background:var(--bg);border-radius:10px;padding:14px 16px;margin-bottom:10px;border:0.5px solid var(--border)}
+.equity-bar{height:8px;border-radius:99px;overflow:hidden;background:var(--sand);margin:8px 0 4px}
+.equity-fill{height:100%;border-radius:99px;background:var(--accent)}
+.equity-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
+
+/* ── MODAL ── */
+.modal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-start;justify-content:center;padding-top:40px;z-index:50;min-height:600px}
+.modal{background:var(--surface);border-radius:14px;padding:24px;width:min(500px,94%);border:0.5px solid var(--border2);max-height:82vh;overflow-y:auto}
+.modal h2{font-family:'DM Serif Display',serif;font-size:19px;font-weight:400;margin-bottom:18px}
+
+/* ── SETTINGS SLIDERS ── */
+.ctrl-group{display:flex;flex-direction:column;gap:4px;flex:1;min-width:130px}
+.ctrl-label{font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.ctrl-val{font-size:13px;font-weight:500;color:var(--text)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+
+/* ── ALERTS ── */
+.alert{border-radius:8px;padding:10px 14px;font-size:12px;margin-bottom:12px}
+.alert.info{background:rgba(30,58,95,.08);color:var(--blue);border:0.5px solid rgba(30,58,95,.2)}
+.alert.warn{background:rgba(200,169,110,.12);color:#7a5c10;border:0.5px solid var(--accent2)}
+.alert.err{background:rgba(192,57,43,.08);color:var(--danger);border:0.5px solid rgba(192,57,43,.25)}
+@media(prefers-color-scheme:dark){.alert.warn{color:var(--accent2)}.alert.info{color:#7eb3ff}}
+
+/* ── SPINNER ── */
+.spinner{width:32px;height:32px;border:3px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:60px auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script type="text/babel">
+const { useState, useEffect, useCallback, useRef } = React;
+
+/* ── Supabase client ───────────────────────────────────────── */
+const sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY)
+
+/* ── Constants ─────────────────────────────────────────────── */
+const FX_FALLBACK = { USD:1, SGD:1.345, INR:83.5 }
+const INST_COLORS = { IBKR:'#1e3a5f','Morgan Stanley':'#8B4513',CPF:'#2d5a3d','Local Bank':'#6b4c9a',Art:'#c8a96e' }
+const TYPE_COLORS = { Equity:'#1e3a5f',Cash:'#4a7c6f',Retirement:'#2d5a3d',Alternative:'#c8a96e','Real Estate':'#8B4513' }
+const GEO_COLORS  = { US:'#1e3a5f', SG:'#2d5a3d', IN:'#c8a96e' }
+
+/* ── Formatters ────────────────────────────────────────────── */
+function fmt(v, cur, compact=false) {
+  const sym = cur==='USD'?'$':cur==='SGD'?'S$':'₹'
+  if (compact) {
+    if (Math.abs(v)>=1e6) return sym+(v/1e6).toFixed(2)+'M'
+    if (Math.abs(v)>=1000) return sym+(v/1000).toFixed(0)+'K'
+  }
+  return sym+Math.round(v).toLocaleString()
+}
+
+function toDisplay(val, fromCurr, fx, toCurr) {
+  return (val / fx[fromCurr]) * fx[toCurr]
+}
+
+/* ══════════════════════════════════════════════════════════════
+   AUTH SCREEN
+══════════════════════════════════════════════════════════════ */
+function AuthScreen({ onAuth }) {
+  const [mode, setMode] = useState('login')   // login | signup | reset
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [msg, setMsg] = useState(null)
+
+  async function submit() {
+    setLoading(true); setMsg(null)
+    try {
+      if (mode === 'signup') {
+        const { error } = await sb.auth.signUp({ email, password })
+        if (error) throw error
+        setMsg({ type:'info', text:'Check your email to confirm your account, then sign in.' })
+      } else if (mode === 'reset') {
+        const { error } = await sb.auth.resetPasswordForEmail(email)
+        if (error) throw error
+        setMsg({ type:'info', text:'Password reset email sent.' })
+      } else {
+        const { data, error } = await sb.auth.signInWithPassword({ email, password })
+        if (error) throw error
+        onAuth(data.user)
+      }
+    } catch(e) {
+      setMsg({ type:'err', text: e.message })
+    } finally { setLoading(false) }
+  }
+
+  return (
+    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',padding:'20px'}}>
+      <div className="auth-wrap">
+        <div className="auth-title">Wealth Dashboard</div>
+        <div className="auth-sub">
+          {mode==='login' ? 'Sign in to your household account' :
+           mode==='signup' ? 'Create a new household account' :
+           'Reset your password'}
+        </div>
+        {msg && <div className={`alert ${msg.type}`}>{msg.text}</div>}
+        <div className="form-row">
+          <label>Email</label>
+          <input type="email" value={email} onChange={e=>setEmail(e.target.value)}
+            onKeyDown={e=>e.key==='Enter'&&submit()} placeholder="you@example.com" />
+        </div>
+        {mode !== 'reset' && (
+          <div className="form-row">
+            <label>Password</label>
+            <input type="password" value={password} onChange={e=>setPassword(e.target.value)}
+              onKeyDown={e=>e.key==='Enter'&&submit()} placeholder="••••••••" />
+          </div>
+        )}
+        <button className="btn primary" style={{width:'100%',marginTop:4}} onClick={submit} disabled={loading}>
+          {loading ? 'Please wait…' : mode==='login' ? 'Sign in' : mode==='signup' ? 'Create account' : 'Send reset email'}
+        </button>
+        <div style={{marginTop:14,fontSize:12,color:'var(--muted)',display:'flex',gap:12,flexWrap:'wrap'}}>
+          {mode==='login' && <><span style={{cursor:'pointer',color:'var(--accent)'}} onClick={()=>setMode('signup')}>Create account</span><span style={{cursor:'pointer',color:'var(--accent)'}} onClick={()=>setMode('reset')}>Forgot password?</span></>}
+          {mode!=='login' && <span style={{cursor:'pointer',color:'var(--accent)'}} onClick={()=>setMode('login')}>Back to sign in</span>}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ══════════════════════════════════════════════════════════════
+   HOUSEHOLD SETUP  (first-time onboarding)
+══════════════════════════════════════════════════════════════ */
+function HouseholdSetup({ user, onReady }) {
+  const [nameA, setNameA] = useState('')
+  const [nameB, setNameB] = useState('')
+  const [hhName, setHhName] = useState('Our Household')
+  const [loading, setLoading] = useState(false)
+  const [err, setErr] = useState(null)
+
+  async function create() {
+    if (!nameA) return setErr('Please enter a name for Person A')
+    setLoading(true); setErr(null)
+    try {
+      const { data: hh, error: e1 } = await sb.from('households').insert({ name: hhName }).select().single()
+      if (e1) throw e1
+
+      await sb.from('household_members').insert({ household_id: hh.id, user_id: user.id, display_name: nameA, label: 'A' })
+
+      if (nameB) {
+        await sb.from('household_members').insert({ household_id: hh.id, user_id: user.id, display_name: nameB, label: 'B' })
+      }
+
+      await sb.from('goal_settings').insert({ household_id: hh.id })
+      onReady(hh)
+    } catch(e) { setErr(e.message) } finally { setLoading(false) }
+  }
+
+  return (
+    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',padding:'20px'}}>
+      <div className="auth-wrap" style={{maxWidth:460}}>
+        <div className="auth-title">Set up your household</div>
+        <div className="auth-sub">This only takes a moment — you can change everything later.</div>
+        {err && <div className="alert err">{err}</div>}
+        <div className="form-row"><label>Household name</label><input value={hhName} onChange={e=>setHhName(e.target.value)} /></div>
+        <div className="form-row"><label>Person A name</label><input value={nameA} onChange={e=>setNameA(e.target.value)} placeholder="e.g. Alex" /></div>
+        <div className="form-row"><label>Person B name (optional)</label><input value={nameB} onChange={e=>setNameB(e.target.value)} placeholder="e.g. Sam" /></div>
+        <button className="btn primary" style={{width:'100%',marginTop:8}} onClick={create} disabled={loading}>
+          {loading ? 'Creating…' : 'Get started'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PIE CHART
+══════════════════════════════════════════════════════════════ */
+function PieChart({ data, id }) {
+  const ref = useRef(null); const inst = useRef(null)
+  useEffect(() => {
+    if (!ref.current || !data.length) return
+    inst.current?.destroy()
+    inst.current = new Chart(ref.current, {
+      type:'doughnut',
+      data:{ labels:data.map(d=>d.label), datasets:[{ data:data.map(d=>d.value), backgroundColor:data.map(d=>d.color), borderWidth:2, borderColor:'transparent' }] },
+      options:{ responsive:true, maintainAspectRatio:false, cutout:'65%', plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label:(ctx)=>` ${ctx.label}: ${ctx.parsed>=1e6?(ctx.parsed/1e6).toFixed(2)+'M':'$'+(ctx.parsed/1000).toFixed(0)+'K'}` } } } }
+    })
+    return ()=>inst.current?.destroy()
+  }, [data, id])
+  return <canvas id={id} ref={ref} role="img" aria-label="Asset allocation pie chart" />
+}
+
+/* ══════════════════════════════════════════════════════════════
+   HISTORY LINE CHART
+══════════════════════════════════════════════════════════════ */
+function HistoryChart({ snapshots, goal, currency, fx }) {
+  const ref = useRef(null); const inst = useRef(null)
+  useEffect(() => {
+    if (!ref.current || !snapshots.length) return
+    inst.current?.destroy()
+    const fxRate = fx[currency]
+    const labels = snapshots.map(s => s.snapshot_date.slice(0,4))
+    const nwData = snapshots.map(s => Math.round(s.net_worth_usd * fxRate))
+    const assetData = snapshots.map(s => Math.round(s.total_assets_usd * fxRate))
+    const liabData = snapshots.map(s => Math.round(s.total_liabilities_usd * fxRate))
+    const goalLine = snapshots.map(() => Math.round(goal * fxRate))
+    inst.current = new Chart(ref.current, {
+      type:'line',
+      data:{ labels, datasets:[
+        { label:'Net worth', data:nwData, borderColor:'#2d5a3d', backgroundColor:'rgba(45,90,61,0.08)', fill:true, tension:0.35, pointRadius:3, borderWidth:2 },
+        { label:'Assets', data:assetData, borderColor:'#c8a96e', tension:0.35, pointRadius:2, borderWidth:1.5, fill:false },
+        { label:'Liabilities', data:liabData, borderColor:'#c0392b', tension:0.35, pointRadius:2, borderWidth:1.5, fill:false },
+        { label:'Goal', data:goalLine, borderColor:'rgba(200,169,110,0.6)', borderDash:[6,4], pointRadius:0, borderWidth:1.5, fill:false },
+      ]},
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        interaction:{ mode:'index', intersect:false },
+        plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label:(ctx)=>{ if(ctx.parsed.y===null)return null; return ` ${ctx.dataset.label}: ${fmt(ctx.parsed.y,currency,true)}` } } } },
+        scales:{
+          x:{ grid:{ color:'rgba(128,128,100,0.08)' }, ticks:{ color:'#6b6b62', font:{ size:11 } } },
+          y:{ grid:{ color:'rgba(128,128,100,0.08)' }, ticks:{ color:'#6b6b62', font:{ size:11 }, callback:v=>fmt(v,currency,true) } }
+        }
+      }
+    })
+    return ()=>inst.current?.destroy()
+  }, [snapshots, goal, currency, fx])
+  return <canvas ref={ref} role="img" aria-label="Net worth history chart" />
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ASSET MODAL
+══════════════════════════════════════════════════════════════ */
+function AssetModal({ asset, householdId, onSave, onDelete, onClose }) {
+  const blank = { name:'', owner:'A', institution:'IBKR', currency:'USD', asset_type:'Equity', geography:'US', value:'', notes:'' }
+  const [form, setForm] = useState(asset ? { ...asset, value: String(asset.value) } : blank)
+  const [saving, setSaving] = useState(false)
+  const [err, setErr] = useState(null)
+  const set = (k,v) => setForm(f=>({...f,[k]:v}))
+
+  async function save() {
+    if (!form.name || !form.value) return setErr('Name and value are required.')
+    setSaving(true); setErr(null)
+    try {
+      const payload = { ...form, value: parseFloat(form.value), household_id: householdId }
+      if (asset?.id) {
+        const { error } = await sb.from('assets').update(payload).eq('id', asset.id)
+        if (error) throw error
+      } else {
+        const { error } = await sb.from('assets').insert(payload)
+        if (error) throw error
+      }
+      onSave()
+    } catch(e) { setErr(e.message) } finally { setSaving(false) }
+  }
+
+  async function del() {
+    setSaving(true)
+    const { error } = await sb.from('assets').delete().eq('id', asset.id)
+    if (!error) onDelete()
+    setSaving(false)
+  }
+
+  return (
+    <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="modal">
+        <h2>{asset ? 'Edit asset' : 'Add asset'}</h2>
+        {err && <div className="alert err" style={{marginBottom:14}}>{err}</div>}
+        <div className="form-row"><label>Name</label><input value={form.name} onChange={e=>set('name',e.target.value)} placeholder="e.g. S&P 500 ETF" /></div>
+        <div className="form-grid">
+          <div className="form-row"><label>Owner</label><select value={form.owner} onChange={e=>set('owner',e.target.value)}><option value="A">Person A</option><option value="B">Person B</option><option value="Both">Both</option></select></div>
+          <div className="form-row"><label>Institution</label><select value={form.institution} onChange={e=>set('institution',e.target.value)}>{['IBKR','Morgan Stanley','CPF','Local Bank','Art','Other'].map(i=><option key={i}>{i}</option>)}</select></div>
+          <div className="form-row"><label>Currency</label><select value={form.currency} onChange={e=>set('currency',e.target.value)}>{['USD','SGD','INR'].map(c=><option key={c}>{c}</option>)}</select></div>
+          <div className="form-row"><label>Value ({form.currency})</label><input type="number" value={form.value} onChange={e=>set('value',e.target.value)} placeholder="0" /></div>
+          <div className="form-row"><label>Asset type</label><select value={form.asset_type} onChange={e=>set('asset_type',e.target.value)}>{['Equity','Cash','Retirement','Alternative','Real Estate'].map(t=><option key={t}>{t}</option>)}</select></div>
+          <div className="form-row"><label>Geography</label><select value={form.geography} onChange={e=>set('geography',e.target.value)}><option value="US">United States</option><option value="SG">Singapore</option><option value="IN">India</option></select></div>
+        </div>
+        <div className="form-row"><label>Notes (optional)</label><input value={form.notes||''} onChange={e=>set('notes',e.target.value)} placeholder="Any extra context…" /></div>
+        <div className="btn-row">
+          {asset && <button className="btn danger" onClick={del} disabled={saving}>Delete</button>}
+          <button className="btn" onClick={onClose}>Cancel</button>
+          <button className="btn primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : asset ? 'Save changes' : 'Add asset'}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ══════════════════════════════════════════════════════════════
+   MORTGAGE MODAL
+══════════════════════════════════════════════════════════════ */
+function MortgageModal({ mortgage, householdId, onSave, onDelete, onClose }) {
+  const blank = { name:'', owner:'Both', currency:'SGD', property_value:'', pending_balance:'', interest_rate:'' }
+  const [form, setForm] = useState(mortgage ? { ...mortgage, property_value:String(mortgage.property_value), pending_balance:String(mortgage.pending_balance), interest_rate:String(mortgage.interest_rate||'') } : blank)
+  const [saving, setSaving] = useState(false)
+  const [err, setErr] = useState(null)
+  const set = (k,v) => setForm(f=>({...f,[k]:v}))
+
+  async function save() {
+    if (!form.name || !form.property_value || !form.pending_balance) return setErr('Name, property value and balance are required.')
+    setSaving(true); setErr(null)
+    try {
+      const payload = { ...form, property_value:parseFloat(form.property_value), pending_balance:parseFloat(form.pending_balance), interest_rate:form.interest_rate?parseFloat(form.interest_rate):null, household_id:householdId }
+      if (mortgage?.id) {
+        const { error } = await sb.from('mortgages').update(payload).eq('id', mortgage.id)
+        if (error) throw error
+      } else {
+        const { error } = await sb.from('mortgages').insert(payload)
+        if (error) throw error
+      }
+      onSave()
+    } catch(e) { setErr(e.message) } finally { setSaving(false) }
+  }
+
+  async function del() {
+    setSaving(true)
+    await sb.from('mortgages').delete().eq('id', mortgage.id)
+    onDelete()
+    setSaving(false)
+  }
+
+  return (
+    <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="modal">
+        <h2>{mortgage ? 'Edit mortgage' : 'Add mortgage'}</h2>
+        {err && <div className="alert err" style={{marginBottom:14}}>{err}</div>}
+        <div className="form-row"><label>Property name</label><input value={form.name} onChange={e=>set('name',e.target.value)} placeholder="e.g. Singapore condo" /></div>
+        <div className="form-grid">
+          <div className="form-row"><label>Currency</label><select value={form.currency} onChange={e=>set('currency',e.target.value)}>{['USD','SGD','INR'].map(c=><option key={c}>{c}</option>)}</select></div>
+          <div className="form-row"><label>Owner</label><select value={form.owner} onChange={e=>set('owner',e.target.value)}><option value="A">Person A</option><option value="B">Person B</option><option value="Both">Both</option></select></div>
+          <div className="form-row"><label>Property value ({form.currency})</label><input type="number" value={form.property_value} onChange={e=>set('property_value',e.target.value)} placeholder="0" /></div>
+          <div className="form-row"><label>Pending balance ({form.currency})</label><input type="number" value={form.pending_balance} onChange={e=>set('pending_balance',e.target.value)} placeholder="0" /></div>
+          <div className="form-row"><label>Interest rate % (optional)</label><input type="number" step="0.01" value={form.interest_rate} onChange={e=>set('interest_rate',e.target.value)} placeholder="e.g. 2.75" /></div>
+        </div>
+        <div className="btn-row">
+          {mortgage && <button className="btn danger" onClick={del} disabled={saving}>Delete</button>}
+          <button className="btn" onClick={onClose}>Cancel</button>
+          <button className="btn primary" onClick={save} disabled={saving}>{saving?'Saving…':mortgage?'Save changes':'Add mortgage'}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ══════════════════════════════════════════════════════════════
+   MAIN DASHBOARD
+══════════════════════════════════════════════════════════════ */
+function Dashboard({ user, household, onSignOut }) {
+  const [assets, setAssets] = useState([])
+  const [mortgages, setMortgages] = useState([])
+  const [snapshots, setSnapshots] = useState([])
+  const [goalSettings, setGoalSettings] = useState({ retirement_goal_usd:3000000, annual_savings_usd:80000, expected_return_pct:7, inflation_pct:3, current_age_a:38, current_age_b:36 })
+  const [fx, setFx] = useState(FX_FALLBACK)
+  const [fxStatus, setFxStatus] = useState('loading')
+  const [currency, setCurrency] = useState('USD')
+  const [tab, setTab] = useState('dashboard')
+  const [loading, setLoading] = useState(true)
+  const [assetModal, setAssetModal] = useState(null)   // null | 'new' | asset object
+  const [mortModal, setMortModal] = useState(null)
+  const [savingGoal, setSavingGoal] = useState(false)
+  const [modalOpen, setModalOpen] = useState(false)
+
+  const hhId = household.id
+
+  /* ── Load data ── */
+  async function loadAll() {
+    setLoading(true)
+    const [aRes, mRes, sRes, gRes, fRes] = await Promise.all([
+      sb.from('assets').select('*').eq('household_id', hhId).order('created_at'),
+      sb.from('mortgages').select('*').eq('household_id', hhId),
+      sb.from('net_worth_snapshots').select('*').eq('household_id', hhId).order('snapshot_date'),
+      sb.from('goal_settings').select('*').eq('household_id', hhId).single(),
+      sb.from('fx_rates').select('*').eq('base','USD'),
+    ])
+    if (aRes.data) setAssets(aRes.data)
+    if (mRes.data) setMortgages(mRes.data)
+    if (sRes.data) setSnapshots(sRes.data)
+    if (gRes.data) setGoalSettings(gRes.data)
+    if (fRes.data && fRes.data.length) {
+      const fxMap = {}
+      fRes.data.forEach(r => { fxMap[r.currency] = r.rate })
+      setFx(fxMap)
+      setFxStatus('live')
+    } else {
+      try {
+        const r = await fetch('https://api.exchangerate-api.com/v4/latest/USD')
+        const d = await r.json()
+        setFx({ USD:1, SGD:d.rates.SGD||1.345, INR:d.rates.INR||83.5 })
+        setFxStatus('live')
+      } catch { setFxStatus('fallback') }
+    }
+    setLoading(false)
+  }
+
+  useEffect(() => { loadAll() }, [hhId])
+
+  /* ── Goal save ── */
+  async function saveGoal(updates) {
+    setSavingGoal(true)
+    const merged = { ...goalSettings, ...updates }
+    setGoalSettings(merged)
+    await sb.from('goal_settings').upsert({ ...merged, household_id: hhId })
+    setSavingGoal(false)
+  }
+
+  /* ── Derived values ── */
+  const cvt = (val, fromCurr) => toDisplay(val, fromCurr, fx, currency)
+  const totalAssets = assets.reduce((s,a) => s + cvt(a.value, a.currency), 0)
+  const totalLiab = mortgages.reduce((s,m) => s + cvt(m.pending_balance, m.currency), 0)
+  const netWorth = totalAssets - totalLiab
+  const goalInCurr = goalSettings.retirement_goal_usd * fx[currency]
+  const goalPct = Math.min((netWorth / goalInCurr) * 100, 100)
+
+  const personA = assets.filter(a=>a.owner==='A'||a.owner==='Both').reduce((s,a)=>s+cvt(a.value,a.currency)*(a.owner==='Both'?.5:1),0)
+  const personB = assets.filter(a=>a.owner==='B'||a.owner==='Both').reduce((s,a)=>s+cvt(a.value,a.currency)*(a.owner==='Both'?.5:1),0)
+
+  const typeMap={}, geoMap={}
+  assets.forEach(a=>{ const v=cvt(a.value,a.currency); typeMap[a.asset_type]=(typeMap[a.asset_type]||0)+v; geoMap[a.geography]=(geoMap[a.geography]||0)+v })
+  const typePie = Object.entries(typeMap).map(([k,v])=>({ label:k, value:Math.round(v), color:TYPE_COLORS[k]||'#888' }))
+  const geoPie  = Object.entries(geoMap).map(([k,v])=>({ label:k==='US'?'United States':k==='SG'?'Singapore':'India', value:Math.round(v), color:GEO_COLORS[k]||'#888' }))
+  const ownerPie = [{ label:'Person A', value:Math.round(personA), color:'#1e3a5f' },{ label:'Person B', value:Math.round(personB), color:'#c8a96e' }]
+
+  const SYMBOL = currency==='USD'?'$':currency==='SGD'?'S$':'₹'
+
+  /* ── Retirement projection ── */
+  const retReal = (1+goalSettings.expected_return_pct/100)/(1+goalSettings.inflation_pct/100)-1
+  let simNW = netWorth / fx[currency]  // always in USD for projection
+  let retYears = 0
+  while (simNW < goalSettings.retirement_goal_usd && retYears < 60) {
+    simNW = simNW * (1 + goalSettings.expected_return_pct/100) + goalSettings.annual_savings_usd
+    retYears++
+  }
+  const retireYear = new Date().getFullYear() + retYears
+  const retireAgeA = (goalSettings.current_age_a||38) + retYears
+
+  const milestones = [.25,.5,.75,1].map(m => {
+    const target = goalSettings.retirement_goal_usd * m
+    const reached = (netWorth/fx[currency]) >= target
+    let yr = '—'
+    if (!reached) {
+      let s = netWorth/fx[currency]; let y = new Date().getFullYear()
+      while (s < target && y < new Date().getFullYear()+60) { s = s*(1+goalSettings.expected_return_pct/100)+goalSettings.annual_savings_usd; y++ }
+      yr = y
+    }
+    return { pct:Math.round(m*100), target, reached, yr }
+  })
+
+  const anyModalOpen = assetModal !== null || mortModal !== null
+
+  if (loading) return <div className="spinner" />
+
+  return (
+    <div style={{position:'relative'}}>
+      {/* ── HEADER ── */}
+      <div className="header">
+        <div>
+          <div className="h-title">{household.name}</div>
+          <div className="h-sub">Signed in as {user.email} · <span style={{cursor:'pointer',color:'var(--accent)'}} onClick={onSignOut}>Sign out</span></div>
+        </div>
+        <div className="h-right">
+          <div className="fx-badge">
+            <span className={`fx-dot ${fxStatus==='loading'?'stale':''}`}></span>
+            {fxStatus==='live'?'Live FX':fxStatus==='fallback'?'Est. FX':'Loading FX…'}
+            {fxStatus!=='loading' && <span style={{color:'var(--text)',fontWeight:500,marginLeft:4}}>1 USD = {fx.SGD?.toFixed(3)} SGD = {fx.INR?.toFixed(1)} INR</span>}
+          </div>
+          <div className="curr-tabs">
+            {['USD','SGD','INR'].map(c=><button key={c} className={`curr-btn ${currency===c?'active':''}`} onClick={()=>setCurrency(c)}>{c}</button>)}
+          </div>
+        </div>
+      </div>
+
+      {/* ── SUMMARY CARDS ── */}
+      <div className="metric-grid">
+        <div className="mc"><div className="mc-label">Total assets</div><div className="mc-val green">{fmt(totalAssets,currency,true)}</div><div className="mc-sub">{assets.length} positions</div></div>
+        <div className="mc"><div className="mc-label">Total liabilities</div><div className="mc-val red">−{fmt(totalLiab,currency,true)}</div><div className="mc-sub">{mortgages.length} mortgage{mortgages.length!==1?'s':''}</div></div>
+        <div className="mc" style={{border:'1.5px solid var(--accent)'}}><div className="mc-label">Net worth</div><div className="mc-val">{fmt(netWorth,currency,true)}</div><div className="mc-sub">Combined household</div></div>
+        <div className="mc"><div className="mc-label">Person A</div><div className="mc-val">{fmt(personA,currency,true)}</div><div className="mc-sub">Incl. 50% joint</div></div>
+        <div className="mc"><div className="mc-label">Person B</div><div className="mc-val">{fmt(personB,currency,true)}</div><div className="mc-sub">Incl. 50% joint</div></div>
+      </div>
+
+      {/* ── GOAL BAR ── */}
+      <div className="panel">
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',flexWrap:'wrap',gap:8,marginBottom:12}}>
+          <div>
+            <div className="section-title">Retirement progress</div>
+            <div style={{fontSize:12,color:'var(--muted)'}}>Target: {fmt(goalInCurr,currency)} · Retire {retireYear} (age {retireAgeA})</div>
+          </div>
+          <div className="goal-pct">{goalPct.toFixed(1)}%</div>
+        </div>
+        <div className="goal-track"><div className="goal-fill" style={{width:goalPct+'%'}}></div></div>
+        <div className="milestone-row">
+          {milestones.map(m=>(
+            <span key={m.pct} className={`ms-chip ${m.reached?'reached':''}`}>
+              {m.pct}% · {fmt(m.target*fx[currency],currency,true)} · {m.reached?'reached':m.yr}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* ── TABS ── */}
+      <div className="nav-tabs">
+        {[['dashboard','Overview'],['history','History'],['assets','Assets'],['liabilities','Liabilities'],['settings','Goal settings']].map(([k,v])=>(
+          <button key={k} className={`tab-btn ${tab===k?'active':''}`} onClick={()=>setTab(k)}>{v}</button>
+        ))}
+      </div>
+
+      {/* ─────────── OVERVIEW ─────────── */}
+      {tab==='dashboard' && (
+        <div>
+          <div className="two-col">
+            <div className="panel">
+              <div className="section-title" style={{marginBottom:12}}>By asset class</div>
+              <div className="chart-wrap-sm"><PieChart data={typePie} id="typePie" /></div>
+              <div className="legend" style={{marginTop:10}}>
+                {typePie.map(d=><span key={d.label} className="leg-item"><span className="leg-sq" style={{background:d.color}}></span>{d.label} · {fmt(d.value,currency,true)}</span>)}
+              </div>
+            </div>
+            <div className="panel">
+              <div className="section-title" style={{marginBottom:12}}>By geography</div>
+              <div className="chart-wrap-sm"><PieChart data={geoPie} id="geoPie" /></div>
+              <div className="legend" style={{marginTop:10}}>
+                {geoPie.map(d=><span key={d.label} className="leg-item"><span className="leg-sq" style={{background:d.color}}></span>{d.label} · {fmt(d.value,currency,true)}</span>)}
+              </div>
+            </div>
+          </div>
+          <div className="panel">
+            <div className="section-title" style={{marginBottom:12}}>Ownership split</div>
+            <div style={{display:'flex',height:28,borderRadius:8,overflow:'hidden',marginBottom:10}}>
+              {personA+personB>0 && <>
+                <div style={{flex:personA,background:'#1e3a5f',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:500,color:'rgba(255,255,255,.9)'}}>A {(personA/(personA+personB)*100).toFixed(0)}%</div>
+                <div style={{flex:personB,background:'#c8a96e',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:500,color:'rgba(255,255,255,.9)'}}>B {(personB/(personA+personB)*100).toFixed(0)}%</div>
+              </>}
+            </div>
+            <div style={{display:'flex',justifyContent:'space-between',fontSize:12,color:'var(--muted)'}}>
+              <span>Person A: {fmt(personA,currency,true)}</span>
+              <span>Person B: {fmt(personB,currency,true)}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─────────── HISTORY ─────────── */}
+      {tab==='history' && (
+        <div className="panel">
+          <div className="section-title" style={{marginBottom:4}}>Net worth history</div>
+          <div style={{fontSize:12,color:'var(--muted)',marginBottom:12}}>{snapshots.length} snapshots · one per day when data changes</div>
+          {snapshots.length === 0 ? (
+            <div className="alert info">No snapshots yet. The system takes an automatic snapshot each day when the FX refresh runs, or you can trigger it manually via the Edge Function.</div>
+          ) : (
+            <>
+              <div className="legend">
+                <span className="leg-item"><span className="leg-sq" style={{background:'#2d5a3d'}}></span>Net worth</span>
+                <span className="leg-item"><span className="leg-sq" style={{background:'#c8a96e'}}></span>Assets</span>
+                <span className="leg-item"><span className="leg-sq" style={{background:'#c0392b'}}></span>Liabilities</span>
+                <span className="leg-item"><span className="leg-sq" style={{background:'rgba(200,169,110,0.5)'}}></span>Goal</span>
+              </div>
+              <div className="chart-wrap">
+                <HistoryChart snapshots={snapshots} goal={goalSettings.retirement_goal_usd} currency={currency} fx={fx} />
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ─────────── ASSETS ─────────── */}
+      {tab==='assets' && (
+        <div className="panel" style={{position:'relative'}}>
+          <div className="panel-head">
+            <div className="section-title">All positions</div>
+            <button className="btn primary" onClick={()=>setAssetModal('new')}>+ Add asset</button>
+          </div>
+          <div style={{overflowX:'auto'}}>
+            <table className="tbl">
+              <thead><tr>
+                <th>Name</th><th>Owner</th><th>Institution</th><th>Type</th><th>Geo</th>
+                <th style={{textAlign:'right'}}>Native</th>
+                <th style={{textAlign:'right'}}>{currency} value</th>
+                <th></th>
+              </tr></thead>
+              <tbody>
+                {assets.map(a=>(
+                  <tr key={a.id}>
+                    <td style={{fontWeight:500}}>{a.name}</td>
+                    <td><span className={`owner-pill ${a.owner==='Both'?'pill-both':a.owner==='A'?'pill-A':'pill-B'}`}>{a.owner}</span></td>
+                    <td><span className="inst-dot" style={{background:INST_COLORS[a.institution]||'#888'}}></span>{a.institution}</td>
+                    <td style={{color:'var(--muted)'}}>{a.asset_type}</td>
+                    <td><span className="geo-badge" style={{background:GEO_COLORS[a.geography]||'#888'}}>{a.geography}</span></td>
+                    <td style={{textAlign:'right',color:'var(--muted)'}}>{fmt(a.value,a.currency)}</td>
+                    <td style={{textAlign:'right',fontWeight:500}}>{fmt(cvt(a.value,a.currency),currency)}</td>
+                    <td style={{textAlign:'right'}}><button className="btn sm" onClick={()=>setAssetModal(a)}>Edit</button></td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot><tr className="tbl-foot"><td colSpan={6} style={{padding:'9px 8px'}}>Total</td><td style={{textAlign:'right',padding:'9px 8px',color:'var(--accent)'}}>{fmt(totalAssets,currency)}</td><td></td></tr></tfoot>
+            </table>
+          </div>
+          {assetModal !== null && (
+            <AssetModal
+              asset={assetModal==='new'?null:assetModal}
+              householdId={hhId}
+              onSave={()=>{ setAssetModal(null); loadAll() }}
+              onDelete={()=>{ setAssetModal(null); loadAll() }}
+              onClose={()=>setAssetModal(null)}
+            />
+          )}
+        </div>
+      )}
+
+      {/* ─────────── LIABILITIES ─────────── */}
+      {tab==='liabilities' && (
+        <div style={{position:'relative'}}>
+          <div className="panel-head" style={{marginBottom:14}}>
+            <div className="section-title">Mortgages &amp; home equity</div>
+            <button className="btn primary" onClick={()=>setMortModal('new')}>+ Add mortgage</button>
+          </div>
+          {mortgages.map(m=>{
+            const propVal = cvt(m.property_value, m.currency)
+            const pending = cvt(m.pending_balance, m.currency)
+            const equity = propVal - pending
+            const pct = (equity/propVal*100)
+            return (
+              <div key={m.id} className="mort-card">
+                <div style={{display:'flex',justifyContent:'space-between',marginBottom:10,flexWrap:'wrap',gap:8}}>
+                  <div style={{fontWeight:500}}>{m.name} {m.interest_rate&&<span style={{fontSize:11,color:'var(--muted)',fontWeight:400}}> · {m.interest_rate}% p.a.</span>}</div>
+                  <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                    <span className={`owner-pill ${m.owner==='Both'?'pill-both':m.owner==='A'?'pill-A':'pill-B'}`}>{m.owner}</span>
+                    <button className="btn sm" onClick={()=>setMortModal(m)}>Edit</button>
+                  </div>
+                </div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10,marginBottom:8}}>
+                  <div><div style={{fontSize:11,color:'var(--muted)',marginBottom:2}}>Property value</div><div style={{fontWeight:500}}>{fmt(propVal,currency)}</div></div>
+                  <div><div style={{fontSize:11,color:'var(--muted)',marginBottom:2}}>Pending balance</div><div style={{fontWeight:500,color:'var(--danger)'}}>−{fmt(pending,currency)}</div></div>
+                  <div><div style={{fontSize:11,color:'var(--muted)',marginBottom:2}}>Home equity</div><div style={{fontWeight:500,color:'var(--accent)'}}>{fmt(equity,currency)}</div></div>
+                </div>
+                <div className="equity-bar"><div className="equity-fill" style={{width:pct+'%'}}></div></div>
+                <div className="equity-labels"><span>Equity {pct.toFixed(0)}%</span><span>Outstanding {(100-pct).toFixed(0)}%</span></div>
+              </div>
+            )
+          })}
+          {mortgages.length===0 && <div className="alert info">No mortgages added yet.</div>}
+          <div className="panel" style={{marginTop:8}}>
+            {[['Total property value', mortgages.reduce((s,m)=>s+cvt(m.property_value,m.currency),0), false],
+              ['Total outstanding', totalLiab, true],
+              ['Net home equity', mortgages.reduce((s,m)=>s+cvt(m.property_value-m.pending_balance,m.currency),0), false]
+            ].map(([label,val,neg],i)=>(
+              <div key={i} style={{display:'flex',justifyContent:'space-between',fontSize:13,padding:'7px 0',borderBottom:i<2?'0.5px solid var(--border)':'none'}}>
+                <span style={{color:i===2?'var(--text)':'var(--muted)',fontWeight:i===2?500:400}}>{label}</span>
+                <span style={{fontWeight:500,color:neg?'var(--danger)':i===2?'var(--accent)':'var(--text)'}}>{neg?'−':''}{fmt(val,currency)}</span>
+              </div>
+            ))}
+          </div>
+          {mortModal !== null && (
+            <MortgageModal
+              mortgage={mortModal==='new'?null:mortModal}
+              householdId={hhId}
+              onSave={()=>{ setMortModal(null); loadAll() }}
+              onDelete={()=>{ setMortModal(null); loadAll() }}
+              onClose={()=>setMortModal(null)}
+            />
+          )}
+        </div>
+      )}
+
+      {/* ─────────── GOAL SETTINGS ─────────── */}
+      {tab==='settings' && (
+        <div className="panel">
+          <div className="section-title" style={{marginBottom:16}}>Goal &amp; projection settings</div>
+          <div className="form-grid">
+            <div className="form-row">
+              <label>Retirement target (USD)</label>
+              <input type="number" value={goalSettings.retirement_goal_usd} step={100000}
+                onChange={e=>setGoalSettings(g=>({...g,retirement_goal_usd:parseFloat(e.target.value)||3000000}))}
+                onBlur={()=>saveGoal({})} />
+            </div>
+            <div className="form-row">
+              <label>Annual savings (USD)</label>
+              <input type="number" value={goalSettings.annual_savings_usd} step={5000}
+                onChange={e=>setGoalSettings(g=>({...g,annual_savings_usd:parseFloat(e.target.value)||80000}))}
+                onBlur={()=>saveGoal({})} />
+            </div>
+            <div className="form-row">
+              <label>Person A current age</label>
+              <input type="number" value={goalSettings.current_age_a||38}
+                onChange={e=>setGoalSettings(g=>({...g,current_age_a:parseInt(e.target.value)||38}))}
+                onBlur={()=>saveGoal({})} />
+            </div>
+            <div className="form-row">
+              <label>Person B current age</label>
+              <input type="number" value={goalSettings.current_age_b||36}
+                onChange={e=>setGoalSettings(g=>({...g,current_age_b:parseInt(e.target.value)||36}))}
+                onBlur={()=>saveGoal({})} />
+            </div>
+          </div>
+          <div style={{display:'flex',flexWrap:'wrap',gap:16,marginTop:8}}>
+            <div className="ctrl-group">
+              <span className="ctrl-label">Expected return — <span className="ctrl-val">{goalSettings.expected_return_pct}%</span></span>
+              <input type="range" min="2" max="15" step="0.5" value={goalSettings.expected_return_pct}
+                onChange={e=>setGoalSettings(g=>({...g,expected_return_pct:parseFloat(e.target.value)}))}
+                onMouseUp={()=>saveGoal({})} onTouchEnd={()=>saveGoal({})} />
+            </div>
+            <div className="ctrl-group">
+              <span className="ctrl-label">Inflation — <span className="ctrl-val">{goalSettings.inflation_pct}%</span></span>
+              <input type="range" min="1" max="8" step="0.5" value={goalSettings.inflation_pct}
+                onChange={e=>setGoalSettings(g=>({...g,inflation_pct:parseFloat(e.target.value)}))}
+                onMouseUp={()=>saveGoal({})} onTouchEnd={()=>saveGoal({})} />
+            </div>
+          </div>
+          <div className="metric-grid" style={{marginTop:16}}>
+            <div className="mc"><div className="mc-label">Retire year</div><div className="mc-val blue">{retireYear}</div></div>
+            <div className="mc"><div className="mc-label">Person A retire age</div><div className="mc-val">{retireAgeA}</div></div>
+            <div className="mc"><div className="mc-label">Real return</div><div className="mc-val">{(retReal*100).toFixed(2)}%</div></div>
+            <div className="mc"><div className="mc-label">Goal progress</div><div className="mc-val amber">{goalPct.toFixed(1)}%</div></div>
+          </div>
+          {savingGoal && <div style={{fontSize:11,color:'var(--muted)',marginTop:8}}>Saving…</div>}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ROOT
+══════════════════════════════════════════════════════════════ */
+function App() {
+  const [session, setSession] = useState(null)
+  const [household, setHousehold] = useState(null)
+  const [checking, setChecking] = useState(true)
+
+  useEffect(() => {
+    sb.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      if (session) loadHousehold(session.user)
+      else setChecking(false)
+    })
+    const { data: { subscription } } = sb.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+      if (session) loadHousehold(session.user)
+      else { setHousehold(null); setChecking(false) }
+    })
+    return () => subscription.unsubscribe()
+  }, [])
+
+  async function loadHousehold(user) {
+    const { data } = await sb.from('household_members')
+      .select('household_id, households(*)')
+      .eq('user_id', user.id)
+      .limit(1).single()
+    setHousehold(data?.households || null)
+    setChecking(false)
+  }
+
+  async function signOut() {
+    await sb.auth.signOut()
+    setHousehold(null)
+  }
+
+  if (checking) return <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center'}}><div className="spinner"></div></div>
+  if (!session) return <AuthScreen onAuth={u=>loadHousehold(u)} />
+  if (!household) return <HouseholdSetup user={session.user} onReady={hh=>setHousehold(hh)} />
+
+  return (
+    <div className="app">
+      <Dashboard user={session.user} household={household} onSignOut={signOut} />
+    </div>
+  )
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />)
+</script>
+</body>
+</html>
