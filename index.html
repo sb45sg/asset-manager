@@ -10,6 +10,11 @@
   window.SUPABASE_URL = 'https://xzphugtdguyedrhhkrwf.supabase.co'
   window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh6cGh1Z3RkZ3V5ZWRyaGhrcndmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMjY2NzQsImV4cCI6MjA5MjgwMjY3NH0.-3Gwjb_9quWMM1BQ48-ctRMZ2jsEdMz_MxlrQPiGlIs'
 </script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const supabase = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY)
+  console.log("Supabase initialized!")
+</script>
 <!-- ──────────────────────────────────────────────────────── -->
 
 <style>
