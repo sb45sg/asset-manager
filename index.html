@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Wealth Dashboard TEST</title>
 
-<!-- ─── REPLACE THESE TWO VALUES ─────────────────────────── -->
 <script>
   window.SUPABASE_URL = 'https://xzphugtdguyedrhhkrwf.supabase.co'
   window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh6cGh1Z3RkZ3V5ZWRyaGhrcndmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMjY2NzQsImV4cCI6MjA5MjgwMjY3NH0.-3Gwjb_9quWMM1BQ48-ctRMZ2jsEdMz_MxlrQPiGlIs'
@@ -15,7 +14,6 @@
   const supabase = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY)
   console.log("Supabase initialized!")
 </script>
-<!-- ──────────────────────────────────────────────────────── -->
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap');
@@ -218,7 +216,7 @@ function AuthScreen({ onAuth }) {
   return (
     <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',padding:'20px'}}>
       <div className="auth-wrap">
-        <div className="auth-title">Wealth Dashboard</div>
+        <div className="auth-title">Wealth Dashboard TEST</div>
         <div className="auth-sub">
           {mode==='login' ? 'Sign in to your household account' :
            mode==='signup' ? 'Create a new household account' :
